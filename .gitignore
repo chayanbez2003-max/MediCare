@@ -1,0 +1,58 @@
+# 🔹 Node modules
+node_modules/
+
+# 🔹 Environment variables (VERY IMPORTANT)
+.env
+.env.*
+!.env.example
+
+# 🔹 Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 🔹 OS files
+.DS_Store
+Thumbs.db
+
+# 🔹 IDE / Editor files
+.vscode/
+.idea/
+*.swp
+
+# 🔹 Build folders
+dist/
+build/
+out/
+
+# 🔹 Coverage reports
+coverage/
+
+# 🔹 Temporary files
+tmp/
+temp/
+
+# 🔹 Uploads (if you store images/files locally)
+uploads/
+public/uploads/
+
+# 🔹 Stripe / payment temp files (optional)
+*.session
+
+# 🔹 Debug files
+*.pid
+*.seed
+*.pid.lock
+
+# 🔹 Optional: frontend build (if React/Vite inside same repo)
+frontend/dist/
+frontend/node_modules/
+
+# 🔹 TypeScript
+*.tsbuildinfo
+
+# 🔹 Package lock (optional - usually keep it)
+# package-lock.json
+# yarn.lock
