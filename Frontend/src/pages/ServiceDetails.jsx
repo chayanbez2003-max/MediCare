@@ -11,7 +11,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const DEFAULT_HOST = "http://localhost:4000".replace(/\/$/, "");
+const DEFAULT_HOST = "import.meta.env.VITE_API_URL".replace(/\/$/, "");
 
 export default function ServiceDetail() {
   const { id } = useParams();

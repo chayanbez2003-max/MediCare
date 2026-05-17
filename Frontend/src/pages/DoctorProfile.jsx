@@ -130,14 +130,14 @@ const DoctorProfile = () => {
       try {
         setLoading(true);
         setError(null);
-        const res  = await fetch(`http://localhost:4000/api/doctors/${id}`);
+        const res  = await fetch(`/api/doctors/${id}`);
         const json = await res.json();
 
         if (json.success && json.data) {
           setDoctor(json.data);
         } else {
           // fallback: fetch all → find by id
-          const fallback = await fetch('http://localhost:4000/api/doctors');
+          const fallback = await fetch('/api/doctors');
           const all = await fallback.json();
           if (all.success) {
             const found = all.data.find((d) => (d._id || d.id) === id);
@@ -228,7 +228,7 @@ const DoctorProfile = () => {
       const headers = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res  = await fetch('http://localhost:4000/api/appointments', {
+      const res  = await fetch('/api/appointments', {
         method: 'POST',
         headers,
         credentials: 'include',

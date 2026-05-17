@@ -21,7 +21,7 @@ const LoginDoctor = () => {
 
         try {
             // Adjust the URL if your backend runs on a different port/host.
-            const response = await axios.post('http://localhost:4000/api/doctor/login', {
+            const response = await axios.post('/api/doctor/login', {
                 email,
                 password
             });

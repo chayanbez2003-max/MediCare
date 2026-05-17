@@ -22,7 +22,7 @@ const PaymentSuccess = () => {
     const confirmPayment = async () => {
       try {
         const res = await fetch(
-          `http://localhost:4000/api/appointments/confirm-payment?sessionId=${sessionId}`
+          `/api/appointments/confirm-payment?sessionId=${sessionId}`
         );
         const json = await res.json();
 

@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react'
 
-const API_BASE = 'http://localhost:4000'
+const API_BASE = import.meta.env.VITE_API_URL
 const PATIENT_COUNT_API = `${API_BASE}/api/appointments/patient/count`
 
 // ─── StatCard Component (inline) ─────────────────────────────────────────────

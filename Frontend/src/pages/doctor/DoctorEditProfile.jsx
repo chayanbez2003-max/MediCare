@@ -84,7 +84,7 @@ const DoctorEditProfile = () => {
       });
       if (imageFile) payload.append('image', imageFile);
 
-      const res = await axios.put('http://localhost:4000/api/doctor/me', payload, {
+      const res = await axios.put('/api/doctor/me', payload, {
         headers: {
           Authorization: `Bearer ${doctorToken}`,
           'Content-Type': 'multipart/form-data',

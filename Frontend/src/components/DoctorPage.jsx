@@ -105,7 +105,7 @@ const DoctorPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('http://localhost:4000/api/doctors');
+        const response = await fetch('/api/doctors');
         const result = await response.json();
         if (result.success) {
           setAllDoctors(result.data);
@@ -152,7 +152,7 @@ const DoctorPage = () => {
   const handleRetry = useCallback(() => {
     setError(null);
     setLoading(true);
-    fetch('http://localhost:4000/api/doctors')
+    fetch('/api/doctors')
       .then((r) => r.json())
       .then((result) => {
         if (result.success) {

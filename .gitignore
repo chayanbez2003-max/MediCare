@@ -1,4 +1,4 @@
-# 🔹 Node modules
+﻿# 🔹 Node modules
 node_modules/
 
 # 🔹 Environment variables (VERY IMPORTANT)
@@ -56,9 +56,11 @@ frontend/node_modules/
 # 🔹 Package lock (optional - usually keep it)
 # package-lock.json
 # yarn.lock
-.env
+
 Frontend/.env
 backend/.env
+admin/.env
+
 # Graphify + Antigravity
 .agent/
 graphify-out/

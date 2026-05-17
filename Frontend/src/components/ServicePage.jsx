@@ -89,7 +89,7 @@ const ServicePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:4000/api/services');
+      const response = await fetch('/api/services');
       const result = await response.json();
       if (result.success) {
         setAllServices(result.data);

@@ -4,7 +4,7 @@ import {
   Trash2, AlertCircle, Calendar,
 } from 'lucide-react'
 
-const API_BASE = 'http://localhost:4000'
+const API_BASE = import.meta.env.VITE_API_URL
 
 // ─── normalizeService (DO NOT MODIFY) ────────────────────────────────────────
 const safeNum = (v, fb = 0) => { const n = Number(v); return Number.isFinite(n) ? n : fb }

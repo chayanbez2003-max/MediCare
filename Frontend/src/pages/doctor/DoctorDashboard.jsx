@@ -85,7 +85,7 @@ const DoctorDashboard = () => {
     if (!doctorToken) return;
     const fetchStats = async () => {
       try {
-        const { data } = await axios.get('http://localhost:4000/api/doctor/dashboard-stats', {
+        const { data } = await axios.get('/api/doctor/dashboard-stats', {
           headers: { Authorization: `Bearer ${doctorToken}` }
         });
         if (data.success) {

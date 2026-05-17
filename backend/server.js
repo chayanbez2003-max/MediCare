@@ -10,7 +10,7 @@ import appointmentRouter from './routes/appointmentRouter.js'
 import serviceAppointmentRouter from './routes/serviceAppointmentRouter.js'
 
 const app = express()
-const port =4000
+const port = process.env.PORT || 4000
 // Always include localhost dev origins as fallback so CORS works without .env
 const allowedOrigins = [
   process.env.FRONTEND_URL,
@@ -32,7 +32,9 @@ const corsOptions = {
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Origin",
+  "Accept",
+  "X-Requested-With"],
 }
 
 // Middlewares

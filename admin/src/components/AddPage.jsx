@@ -7,7 +7,7 @@ import {
 
 const DAYS = ['Mon','Tue','Wed','Thur','Fri','Sat','Sun']
 
-const API_BASE = 'http://localhost:4000'
+const API_BASE = import.meta.env.VITE_API_URL
 
 // ─── Specialization options ───────────────────────────────────────────────────
 const SPECIALIZATIONS = [

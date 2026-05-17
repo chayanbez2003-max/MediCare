@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { pageStyles, statusClasses, keyframesStyles } from '../assets/dummyStyles'
 import StatusBadge from './StatusBadge'
 
-const API_BASE = 'http://localhost:4000'
+const API_BASE = import.meta.env.VITE_API_URL
 
 const STATUSES = ['All', 'Pending', 'Confirmed', 'Completed', 'Canceled']
 

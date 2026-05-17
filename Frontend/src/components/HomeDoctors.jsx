@@ -10,7 +10,7 @@ const HomeDoctors = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await fetch('http://localhost:4000/api/doctors');
+        const response = await fetch('/api/doctors');
         const result = await response.json();
         if (result.success) {
           // Take only the top 4 doctors
