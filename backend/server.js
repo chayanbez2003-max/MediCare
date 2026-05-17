@@ -19,7 +19,7 @@ const allowedOrigins = [
   'http://localhost:5174',
   'http://localhost:5175',
   'http://localhost:3000',
-].filter(Boolean)
+].filter(Boolean).map(url => url.replace(/\/$/, ''))
 
 const corsOptions = {
     origin: function(origin, callback){
