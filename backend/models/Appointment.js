@@ -5,7 +5,7 @@ const appointmentSchema = new mongoose.Schema({
         required: true,
         index: true
       },
-      createdAt:{
+      createdBy:{
         type:String,
         default: null,
         index: true

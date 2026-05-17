@@ -13,7 +13,9 @@ appointmentRouter.get('/me', clerkMiddleware(),requireAuth(), getAppointmentsByP
 
 appointmentRouter.get("/doctor/:doctorId", getAppointmentsByDoctor)
 appointmentRouter.post("/:id/cancel",cancelAppointment)
-appointmentRouter.get('/patients/count', getRegisterUserCount)
+appointmentRouter.get('/patient/count', getRegisterUserCount)
 appointmentRouter.put("/:id",updateAppointment)
 
 appointmentRouter.get("/stats/summary", getStats)
+
+export default appointmentRouter;

@@ -61,7 +61,16 @@ const doctorSchema = new mongoose.Schema({
     default: "Available",
     },
 
-    schedule: { type: Map, of: [String], default: { } },
+    schedule: {
+  type: Map,
+  of: [
+    {
+      startTime: String,
+      endTime: String
+    }
+  ],
+  default: {}
+},
     success: { type: String, default: "" },
     patients: { type: String, default: "" },
     rating: { type: Number, default: 0 },

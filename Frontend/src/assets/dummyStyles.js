@@ -632,7 +632,7 @@ export const navbarStyles = {
   doctorAdminButton: "btn-add hidden lg:inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-semibold transition-transform duration-200",
   doctorAdminIcon: "w-4 h-4",
   doctorAdminText: "hidden lg:text-xs lg:whitespace-nowrap sm:inline-block",
-  loginButton: "btn-login hidden lg:flex lg:text-sm items-center gap-2 bg-linear-to-r from-emerald-400 to-green-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-xl transition-all duration-300 cursor-default",
+  loginButton: "btn-login hidden lg:flex lg:text-sm items-center gap-2 bg-linear-to-r from-emerald-400 to-green-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-xl transition-all duration-300 cursor-pointer",
   loginIcon: "w-4 h-4",
   
   // Mobile toggle
@@ -648,7 +648,7 @@ export const navbarStyles = {
   // Mobile signed out buttons
   mobileDoctorAdminButton: "w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-emerald-200 bg-white text-sm font-semibold hover:bg-emerald-50 transition-all",
   mobileLoginContainer: "w-full mt-3",
-  mobileLoginButton: "w-full cursor-default md:rounded-full flex items-center justify-center gap-2 bg-linear-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-semibold hover:shadow-lg transition-all",
+  mobileLoginButton: "w-full cursor-pointer md:rounded-full flex items-center justify-center gap-2 bg-linear-to-r from-emerald-500 to-green-600 text-white py-2.5 rounded-lg font-semibold hover:shadow-lg transition-all",
   
   // Animation styles (to be added via style tag)
   animationStyles: `

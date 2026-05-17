@@ -3,6 +3,8 @@ import Doctor from '../models/Doctor.model.js'
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
 import jwt from 'jsonwebtoken'
 
+import Appointment from '../models/Appointment.js';
+
 // Helper function
 
 // this function will convert time to number of minutes 
@@ -41,6 +43,19 @@ function parseScheduleInput(s) {
   return dedupeAndSortSchedule(s || {});
 }
 
+// Map full day names → short keys used by both admin and patient apps
+const FULL_TO_SHORT = {
+  sunday: "Sun", monday: "Mon", tuesday: "Tue", wednesday: "Wed",
+  thursday: "Thur", friday: "Fri", saturday: "Sat",
+};
+
+/** Normalise a schedule key to its canonical short form.
+ *  Accepts "Monday", "monday", "Mon", "mon" etc.               */
+function normalizeDayKey(key) {
+  const lower = (key || "").toLowerCase();
+  return FULL_TO_SHORT[lower] || key;          // keep as-is if already short
+}
+
 // this function will convert doctor data into plain text
 
 function normalizeDocForClient(raw = {}) {
@@ -50,10 +65,16 @@ function normalizeDocForClient(raw = {}) {
   if (doc.schedule && typeof doc.schedule.forEach === "function") {
     const obj = {};
     doc.schedule.forEach((val, key) => {
-      obj[key] = Array.isArray(val) ? val : [];
+      obj[normalizeDayKey(key)] = Array.isArray(val) ? val : [];
     });
     doc.schedule = obj;
-  } else if (!doc.schedule || typeof doc.schedule !== "object") {
+  } else if (doc.schedule && typeof doc.schedule === "object") {
+    const obj = {};
+    Object.entries(doc.schedule).forEach(([key, val]) => {
+      obj[normalizeDayKey(key)] = Array.isArray(val) ? val : [];
+    });
+    doc.schedule = obj;
+  } else {
     doc.schedule = {};
   }
 
@@ -254,26 +275,40 @@ export const getDoctors = async (req, res) => {
     //   success: d.success ?? "",
     //   raw: d,
     // }));
-const normalized = docs.map((d) => ({
-  id: d._id,
-  name: d.name,
-  specialization: d.specialization,
-  fee: d.fee,
-  imageUrl: d.imageUrl,
-  appointmentsTotal: d.appointmentsTotal,
-  appointmentsCompleted: d.appointmentsCompleted,
-  appointmentsCanceled: d.appointmentsCanceled,
-  earnings: d.earnings,
-  availability: d.availability,
-  schedule: d.schedule,
-  patients: d.patients,
-  rating: d.rating,
-  about: d.about,
-  experience: d.experience,
-  qualifications: d.qualifications,
-  location: d.location,
-  success: d.success,
-}));
+const normalized = docs.map((d) => {
+  // Normalize schedule keys (full day names → short: Monday → Mon)
+  let schedule = d.schedule;
+  if (schedule && typeof schedule === "object") {
+    const norm = {};
+    Object.entries(schedule).forEach(([key, val]) => {
+      norm[normalizeDayKey(key)] = Array.isArray(val) ? val : [];
+    });
+    schedule = norm;
+  } else {
+    schedule = {};
+  }
+
+  return {
+    id: d._id,
+    name: d.name,
+    specialization: d.specialization,
+    fee: d.fee,
+    imageUrl: d.imageUrl,
+    appointmentsTotal: d.appointmentsTotal,
+    appointmentsCompleted: d.appointmentsCompleted,
+    appointmentsCanceled: d.appointmentsCanceled,
+    earnings: d.earnings,
+    availability: d.availability,
+    schedule,
+    patients: d.patients,
+    rating: d.rating,
+    about: d.about,
+    experience: d.experience,
+    qualifications: d.qualifications,
+    location: d.location,
+    success: d.success,
+  };
+});
 
 
     const total = await Doctor.countDocuments(match);
@@ -444,6 +479,7 @@ export async function toggleAvailability(req,res){
 // to login the doctor
 
 export async function doctorLogin(req,res){
+  console.log("--> Hit doctorLogin controller with body:", req.body);
   try {
     const{email,password}=req.body || {}
     if(!email || !password){
@@ -489,6 +525,125 @@ export async function doctorLogin(req,res){
       success:false,
       message:"Server error"
     })
-    
   }
 }
+
+// to get doctor dashboard stats
+
+export async function getDoctorDashboardStats(req, res) {
+  try {
+    const doctorId = req.doctor._id;
+    const appointments = await Appointment.find({ doctorId });
+
+    let totalAppointments = 0;
+    let pendingAppointments = 0;
+    let cancelledAppointments = 0;
+    let successfulAppointments = 0;
+    let confirmedAppointments = 0;
+    let earnings = 0;
+
+    // Monthly buckets: last 6 months
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    const monthlyMap = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
+      monthlyMap[key] = { month: key, total: 0, completed: 0, cancelled: 0, earnings: 0 };
+    }
+
+    appointments.forEach((appt) => {
+      totalAppointments++;
+      const status = appt.status?.toLowerCase() || '';
+
+      if (status === 'canceled' || status === 'cancelled') cancelledAppointments++;
+      else if (status === 'completed' || status === 'successful') successfulAppointments++;
+      else if (status === 'pending') pendingAppointments++;
+      else if (status === 'confirmed') confirmedAppointments++;
+
+      if (status === 'completed' || status === 'confirmed' || status === 'successful') {
+        earnings += (appt.fees || 0);
+      }
+
+      // Place in monthly bucket
+      const raw = appt.date || (appt.createdAt ? String(appt.createdAt) : null) || String(appt._id.getTimestamp?.() || '');
+      let apptDate = null;
+      if (raw) { try { apptDate = new Date(raw); } catch { apptDate = null; } }
+      if (!apptDate || isNaN(apptDate.getTime())) apptDate = new Date(appt._id.getTimestamp ? appt._id.getTimestamp() : Date.now());
+
+      const key = `${MONTHS[apptDate.getMonth()]} ${String(apptDate.getFullYear()).slice(2)}`;
+      if (monthlyMap[key]) {
+        monthlyMap[key].total++;
+        if (status === 'completed' || status === 'successful') monthlyMap[key].completed++;
+        if (status === 'canceled' || status === 'cancelled') monthlyMap[key].cancelled++;
+        if (status === 'completed' || status === 'confirmed' || status === 'successful') {
+          monthlyMap[key].earnings += (appt.fees || 0);
+        }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        totalAppointments,
+        pendingAppointments,
+        cancelledAppointments,
+        successfulAppointments,
+        confirmedAppointments,
+        earnings,
+      },
+      // Donut / pie breakdown
+      statusBreakdown: [
+        { name: 'Completed', value: successfulAppointments, color: '#10b981' },
+        { name: 'Pending',   value: pendingAppointments,   color: '#f59e0b' },
+        { name: 'Confirmed', value: confirmedAppointments, color: '#3b82f6' },
+        { name: 'Cancelled', value: cancelledAppointments, color: '#f43f5e' },
+      ].filter(d => d.value > 0),
+      // Monthly bar / line data
+      monthlyTrend: Object.values(monthlyMap),
+    });
+  } catch (err) {
+    console.error("getDoctorDashboardStats Error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+
+// Doctor self-update (doctor updates own profile using JWT)
+export async function updateDoctorSelf(req, res) {
+  try {
+    const doctorId = req.doctor._id;
+    const body = req.body || {};
+
+    const existing = await Doctor.findById(doctorId);
+    if (!existing) return res.status(404).json({ success: false, message: "Doctor not found" });
+
+    // Handle image upload
+    if (req.file?.path) {
+      const uploaded = await uploadToCloudinary(req.file.path, "doctors");
+      if (uploaded) {
+        const previousPublicId = existing.imagePublicId;
+        existing.imageUrl = uploaded.secure_url || uploaded.url || existing.imageUrl;
+        existing.imagePublicId = uploaded.public_id || uploaded.publicId || existing.imagePublicId;
+        if (previousPublicId && previousPublicId !== existing.imagePublicId) {
+          deleteFromCloudinary(previousPublicId).catch((e) => console.warn("deleteFromCloudinary warning:", e?.message || e));
+        }
+      }
+    }
+
+    // All updatable fields by the doctor themselves
+    const updatable = ["name", "specialization", "experience", "qualifications", "location", "about", "fee", "availability", "success", "patients", "rating"];
+    updatable.forEach((k) => { if (body[k] !== undefined) existing[k] = body[k]; });
+
+    if (body.schedule) existing.schedule = parseScheduleInput(body.schedule);
+
+    await existing.save();
+
+    const out = normalizeDocForClient(existing.toObject());
+    delete out.password;
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    console.error("updateDoctorSelf error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+}
+

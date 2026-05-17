@@ -59,3 +59,7 @@ frontend/node_modules/
 .env
 Frontend/.env
 backend/.env
+# Graphify + Antigravity
+.agent/
+graphify-out/
+.claudeignore

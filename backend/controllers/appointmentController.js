@@ -1,10 +1,14 @@
 import Appointment from "../models/Appointment.js";
 import Doctor from "../models/Doctor.model.js";
 import dotenv from 'dotenv'
-import Stripe from "stripe";
+import Stripe from "../config/stripe.js";
 import { getAuth } from "@clerk/express";
-import { clerkClient } from "@clerk/sdk-node ";
+import { createClerkClient } from "@clerk/backend"; // replaces deprecated @clerk/clerk-sdk-node
 dotenv.config();
+
+// Initialize Clerk client using the secret key from .env
+const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY
 const FRONTEND_URL = process.env.FRONTEND_URL
@@ -65,7 +69,7 @@ export const getAppointments = async (req, res) => {
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
     }
 
-    const items = (await Appointment.find(filter)).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("doctorId", "name specialization owner imageUrl image").lean()
+    const items = await Appointment.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate("doctorId", "name specialization owner imageUrl image").lean()
 
     const total = await Appointment.countDocuments(filter);
     return res.json({
@@ -75,7 +79,7 @@ export const getAppointments = async (req, res) => {
     })
 
   } catch (error) {
-    console.error("getAppoinments error", err);
+    console.error("getAppointments error", error);
     return res.status(500).json({
       success: false,
       message: "Server error"
@@ -91,7 +95,7 @@ export const getAppointmentsByPatient = async (req, res) => {
     const clerkUserId = resolveClerkUserId(req);
     const resolvedCreatedBy = queryCreatedBy || clerkUserId || null;
 
-    console.log("resolvedCreatedBy (query or req.auth.userId)", resolvedCreatedBy);
+    console.log("[DEBUG] getAppointmentsByPatient – resolvedCreatedBy:", resolvedCreatedBy);
 
     if (!resolvedCreatedBy && !req.query.mobile) {
       return res.status(401).json({
@@ -115,7 +119,9 @@ export const getAppointmentsByPatient = async (req, res) => {
 
      
     const filter = {};
-    if (resolvedCreatedBy) filter.owner = resolvedCreatedBy;
+    // FIX: Patient Clerk userId is stored in `createdBy`, NOT `owner`.
+    // `owner` holds the admin/doctor-owner who manages the doctor profile.
+    if (resolvedCreatedBy) filter.createdBy = resolvedCreatedBy;
     if (mobile) filter.mobile = mobile;
     if (status) filter.status = status;
     if (date) filter.date = date;
@@ -125,6 +131,8 @@ export const getAppointmentsByPatient = async (req, res) => {
     } // regex is used for case insensitive search 
 
     
+    console.log("[DEBUG] getAppointmentsByPatient – filter:", JSON.stringify(filter));
+
     const [items, total] = await Promise.all([
       Appointment.find(filter)
         .sort({ createdAt: -1 })
@@ -134,6 +142,8 @@ export const getAppointmentsByPatient = async (req, res) => {
         .lean(),
       Appointment.countDocuments(filter),
     ]);
+
+    console.log("[DEBUG] getAppointmentsByPatient – found:", items.length, "of", total);
 
     return res.json({
       success: true,
@@ -219,7 +229,7 @@ export const createAppointment = async (req, res)=>{
       doctor = await Doctor.findById(doctorId).lean()
       
     } catch (error) {
-      console.warn("Doctor lookup failed: ", e?.message || e);     
+      console.warn("Doctor lookup failed: ", error?.message || error);     
     }
     
     if(!doctor) return res.status(404).json({
