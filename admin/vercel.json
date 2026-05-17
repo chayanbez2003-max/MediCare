@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://medicare-t8az.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
