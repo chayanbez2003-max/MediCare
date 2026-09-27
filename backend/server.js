@@ -11,34 +11,57 @@ import serviceAppointmentRouter from './routes/serviceAppointmentRouter.js'
 
 const app = express()
 const port = process.env.PORT || 4000
-// Always include localhost dev origins as fallback so CORS works without .env
-const allowedOrigins = [
+// Allowed origins setup with explicit defaults and environment variables
+const defaultOrigins = [
+  'https://medi-care-admin-khaki.vercel.app',
+  'https://medi-care-woad-theta.vercel.app',
+]
+
+const envOrigins = [
   process.env.FRONTEND_URL,
   process.env.ADMIN_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://localhost:3000',
-].filter(Boolean).map(url => url.replace(/\/$/, ''))
+]
+  .filter(Boolean)
+  .flatMap(url => url.split(',').map(u => u.trim().replace(/\/$/, '')))
+
+const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]))
 
 const corsOptions = {
     origin: function(origin, callback){
-        if(!origin) return callback(null,true)
-        if(allowedOrigins.includes(origin)){
-             return callback(null,true)
-        }else{
-            return callback(new Error("Not allowed by CORS"))
+        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        if(!origin) return callback(null, true)
+        
+        const cleanOrigin = origin.replace(/\/$/, '')
+        
+        // 1. Automatically allow ALL local development origins (any localhost or 127.0.0.1 port)
+        const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)
+        
+        // 2. Automatically allow all Vercel deployments (*.vercel.app)
+        const isVercel = /\.vercel\.app$/.test(cleanOrigin)
+        
+        // 3. Allow explicit whitelist from environment variables / defaults
+        const isExplicitlyAllowed = allowedOrigins.includes(cleanOrigin)
+        
+        if (isLocalhost || isVercel || isExplicitlyAllowed) {
+          return callback(null, true)
+        } else {
+          console.warn(`[CORS] Request blocked from origin: ${origin}`)
+          return callback(new Error("Not allowed by CORS"))
         }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Origin",
-  "Accept",
-  "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Origin",
+      "Accept",
+      "X-Requested-With",
+    ],
 }
 
 // Middlewares
-// ⚠️  Handle ALL OPTIONS preflight requests FIRST — before Clerk middleware touches them
+// ⚠️ Handle ALL OPTIONS preflight requests FIRST — before Clerk middleware touches them
 app.options('*path', cors(corsOptions))
 app.use(cors(corsOptions))
 
