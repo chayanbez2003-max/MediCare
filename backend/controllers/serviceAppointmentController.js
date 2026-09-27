@@ -1,7 +1,7 @@
-import serviceAppointment from "../models/serviceAppointment.js";
+import ServiceAppointment from "../models/serviceAppointment.js";
 import Service from "../models/Service.js";
 import Stripe from "../config/stripe.js";
-import {getAuth} from "@clerk/express";
+import { getAuth } from "@clerk/express";
 
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY
 // const FRONTEND_URL = process.env.FRONTEND_URL
@@ -67,15 +67,15 @@ function resolveClerkUserId(req) {
 
 // to create a service appointment (Endpoint for patient to create a service appointment)
 
-export const createServiceAppointment = async(req, rea)=>{
-    try {
+export const createServiceAppointment = async (req, res) => {
+  try {
 
-        const body = req.body || {}
-        const clerkUserId = resolveClerkUserId(req)
-       if(!clerkUserId) return res.status(401).json({
-        success:false,
-        message:"Authentication required"
-       })
+    const body = req.body || {}
+    const clerkUserId = resolveClerkUserId(req)
+    if (!clerkUserId) return res.status(401).json({
+      success: false,
+      message: "Authentication required"
+    })
 
     const {
       serviceId,
@@ -98,7 +98,7 @@ export const createServiceAppointment = async(req, rea)=>{
       serviceImageUrl: serviceImageUrlFromBody,
       serviceImagePublicId: serviceImagePublicIdFromBody,
     } = body;
-         if (!serviceId) return res.status(400).json({ success: false, message: "serviceId is required" });
+    if (!serviceId) return res.status(400).json({ success: false, message: "serviceId is required" });
     if (!patientName || !String(patientName).trim()) return res.status(400).json({ success: false, message: "patientName is required" });
     if (!mobile || !String(mobile).trim()) return res.status(400).json({ success: false, message: "mobile is required" });
     if (!date || !String(date).trim()) return res.status(400).json({ success: false, message: "date is required (YYYY-MM-DD)" });
@@ -182,8 +182,8 @@ export const createServiceAppointment = async(req, rea)=>{
     const frontendBase = buildFrontendBase(req);
     if (!frontendBase) return res.status(500).json({ success: false, message: "Frontend base URL not available. Set FRONTEND_URL or provide Origin header." });
 
-    const successUrl = `${frontendBase}/service-appointment/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = `${frontendBase}/service-appointment/cancel`;
+    const successUrl = `${frontendBase}/booking-result?status=success&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${frontendBase}/booking-result?status=failed&service_id=${serviceId}`;
 
     let session;
     try {
@@ -239,39 +239,39 @@ export const createServiceAppointment = async(req, rea)=>{
 };
 
 // to confirm the service payment 
-export const confirmServicePayment = async (req, res) =>{
+export const confirmServicePayment = async (req, res) => {
+  try {
+    const { session_id } = req.query
+    if (!session_id) return res.status(400).json({
+      success: false,
+      message: "Session ID is required"
+    })
+
+    if (!stripe) return res.status(500).json({
+      success: false,
+      message: "Stripe not configured on server"
+    })
+
+    let session;
     try {
-        const {session_id} = req.query
-        if(!session_id) return res.status(400).json({
-            success:false,
-            message:"Session ID is required"
-        })
+      session = await stripe.checkout.sessions.retrieve(session_id)
+    } catch (error) {
+      console.error("Stripe retrieve session error:", error);
+      return res.status(502).json({
+        success: false,
+        message: "Payment provider error"
+      })
+    }
 
-        if(!stripe) return res.status(500).json({
-            success:false,
-            message:"Stripe not configured on server"
-        })
+    if (!session) return res.status(404).json({
+      success: false,
+      message: "Session not found"
+    })
 
-        let session;
-        try {
-            session = await stripe.checkout.sessions.retrieve(session_id)
-        } catch (error) {
-            console.error("Stripe retrieve session error:", error);
-            return res.status(502).json({
-                success:false,
-                message:"Payment provider error"
-            })
-        }
-
-        if(!session) return res.status(404).json({
-            success:false,
-            message:"Session not found"
-        })
-
-        if(session.payment_status !== "paid") return res.status(400).json({
-            success:false,
-            message:"Payment not completed"
-        })
+    if (session.payment_status !== "paid") return res.status(400).json({
+      success: false,
+      message: "Payment not completed"
+    })
 
     let appt = await ServiceAppointment.findOneAndUpdate(
       { "payment.sessionId": session_id },
@@ -303,11 +303,11 @@ export const confirmServicePayment = async (req, res) =>{
 
     if (!appt) return res.status(404).json({ success: false, message: "Service appointment not found" });
     return res.json({
-        success:true,
-        appointment:appt
+      success: true,
+      appointment: appt
     })
-        
-     } catch (err) {
+
+  } catch (err) {
     console.error("confirmServicePayment unexpected:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
@@ -330,14 +330,14 @@ export const getAllServiceAppointments = async (req, res) => {
       filter.$or = [{ patientName: re }, { mobile: re }, { notes: re }];
     }
 
-    const appointment = await serviceAppointment.find(filter)
-    .populate("seviceId", "name image imageUrl imageSmall").sort({createdAt:-1}).skip(skip).limit(limit).lean()
+    const appointment = await ServiceAppointment.find(filter)
+      .populate("seviceId", "name image imageUrl imageSmall").sort({ createdAt: -1 }).skip(skip).limit(limit).lean()
 
-    const total = await serviceAppointment.countDocuments(filter)
+    const total = await ServiceAppointment.countDocuments(filter)
     return res.json({
-        success:true,
-        appointment,
-        meta:{page,limit,total,count:appointment.length}
+      success: true,
+      appointment,
+      meta: { page, limit, total, count: appointment.length }
     })
 
   } catch (err) {
@@ -350,9 +350,9 @@ export const getAllServiceAppointments = async (req, res) => {
 export const getServiceAppointmentById = async (req, res) => {
   try {
     const { id } = req.params;
-    const appointment = await serviceAppointment.findById(id).lean();
+    const appointment = await ServiceAppointment.findById(id).lean();
     if (!appointment) return res.status(404).json({ success: false, message: "Service appointment not found" });
-    return res.json({ success: true, data:appointment });
+    return res.json({ success: true, data: appointment });
   } catch (err) {
     console.error("getServiceAppointmentById unexpected:", err);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -365,7 +365,7 @@ export const updateServiceAppointment = async (req, res) => {
     const { id } = req.params;
     const body = req.body || {};
     const updates = {};
-    
+
     // first check whether filled if yes then update 
     if (body.status !== undefined) updates.status = body.status;
     if (body.notes !== undefined) updates.notes = body.notes;
@@ -401,9 +401,9 @@ export const updateServiceAppointment = async (req, res) => {
       }
     }
 
-    const updated = await serviceAppointment.findByIdAndUpdate(id, {$set:updates}, {new:true, runValidators:true})
-    if(!updated) return res.status(404).json({success:false, message:"Service appointment not found"})
-    return res.json({success:true, data:updated})
+    const updated = await ServiceAppointment.findByIdAndUpdate(id, { $set: updates }, { new: true, runValidators: true })
+    if (!updated) return res.status(404).json({ success: false, message: "Service appointment not found" })
+    return res.json({ success: true, data: updated })
 
   } catch (err) {
     console.error("updateServiceAppointment unexpected:", err);
@@ -412,10 +412,10 @@ export const updateServiceAppointment = async (req, res) => {
 };
 
 // to cancel an appointment
-export const cancelServiceAppointment = async(req, res) =>{
+export const cancelServiceAppointment = async (req, res) => {
   try {
-    const {id} = req.params
-    const appt = await serviceAppointment.findById(id)
+    const { id } = req.params
+    const appt = await ServiceAppointment.findById(id)
 
     if (!appt) return res.status(404).json({ success: false, message: "Not found" });
     if (appt.status === "Completed") return res.status(400).json({ success: false, message: "Cannot cancel a completed appointment" });
@@ -423,7 +423,7 @@ export const cancelServiceAppointment = async(req, res) =>{
     appt.status = "Canceled";
     if (appt.payment) appt.payment.status = appt.payment.status === "Confirmed" ? "Canceled" : "Pending";
     await appt.save()
-    return res.json({success:true, data:appt})
+    return res.json({ success: true, data: appt })
   } catch (err) {
     console.error("cancelServiceAppointment unexpected:", err);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -431,11 +431,21 @@ export const cancelServiceAppointment = async(req, res) =>{
 }
 
 // to get stats of service appointment
-export const getServiceAppointmentStats = async(req, res) =>{
+export const getServiceAppointmentStats = async (req, res) => {
   try {
     const services = await Service.aggregate([
       {
-        $lookup: { from: "serviceappointments", localField: "_id", foreignField: "serviceId", as: "appointments" },
+        $addFields: {
+          _id_str: { $toString: "$_id" }
+        }
+      },
+      {
+        $lookup: {
+          from: "Serviceappointment",
+          localField: "_id_str",
+          foreignField: "serviceId",
+          as: "appointments"
+        }
       },
       {
         $addFields: {
@@ -445,42 +455,59 @@ export const getServiceAppointmentStats = async(req, res) =>{
         },
       },
       { $addFields: { earning: { $multiply: ["$completed", "$price"] } } },
-      { $project: { name: 1, price: 1, image: "$imageUrl", totalAppointments: 1, completed: 1, canceled: 1, earning: 1 } },
+      { $project: { name: 1, price: 1, image: "$imageUrl", totalAppointments: 1, completed: 1, canceled: 1, earning: 1, earnings: "$earning" } },
       { $sort: { createdAt: -1 } },
     ]);
 
+    const totalAppointments = services.reduce((acc, s) => acc + s.totalAppointments, 0);
+    const totalCompleted = services.reduce((acc, s) => acc + s.completed, 0);
+    const totalCanceled = services.reduce((acc, s) => acc + s.canceled, 0);
+    const totalEarnings = services.reduce((acc, s) => acc + s.earning, 0);
+
     return res.json({
-      success:true,
+      success: true,
       services,
-      totalAppointments:services.length
-    })
+      totalAppointments,
+      completed: totalCompleted,
+      canceled: totalCanceled,
+      earning: totalEarnings,
+      earnings: totalEarnings,
+    });
 
   } catch (err) {
-    console.error("getServiceAppointmentStats unexpected:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error(
+      "getServiceAppointmentStats unexpected:",
+      err
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+      stack: err.stack,
+    });
   }
 }
 
 // to get appointment for the patient
-export const getPatientServiceAppointments = async(req, res) =>{
+export const getPatientServiceAppointments = async (req, res) => {
   try {
-    const clerkUserId = resolveClerkUserId(req) 
-    const {createdBy, mobile} = req.query
+    const clerkUserId = resolveClerkUserId(req)
+    const { createdBy, mobile } = req.query
     const resolveCreatedBy = createdBy || clerkUserId || null
-    if(!resolveCreatedBy && !mobile) return res.json({
-      success:true,
+    if (!resolveCreatedBy && !mobile) return res.json({
+      success: true,
       data: []
     })
 
     const filter = {}
-    if(resolveCreatedBy) filter.createdBy = resolveCreatedBy
-    if(mobile) filter.mobile = mobile
+    if (resolveCreatedBy) filter.createdBy = resolveCreatedBy
+    if (mobile) filter.mobile = mobile
 
-    const list = (await serviceAppointment.find(filter)).toSorted({createdAt:-1}).lean();
-    
+    const list = await ServiceAppointment.find(filter).sort({ createdAt: -1 }).lean();
+
     return res.json({
-      success:true,
-      data:list
+      success: true,
+      data: list
     })
   } catch (err) {
     console.error("getPatientServiceAppointments unexpected:", err);

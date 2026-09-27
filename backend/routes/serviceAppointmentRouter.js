@@ -16,6 +16,7 @@ const serviceAppointmentRouter = express.Router();
 // Public routes
 serviceAppointmentRouter.get("/", getAllServiceAppointments);
 serviceAppointmentRouter.get("/confirm", confirmServicePayment);
+serviceAppointmentRouter.get("/stats", getServiceAppointmentStats);
 serviceAppointmentRouter.get("/stats/summary", getServiceAppointmentStats);
 serviceAppointmentRouter.get("/:id", getServiceAppointmentById);
 

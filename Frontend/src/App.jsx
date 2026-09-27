@@ -10,6 +10,7 @@ import LoginDoc from './pages/LoginDoc'
 import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentCancel from './pages/PaymentCancel'
 import MyAppointments from './pages/MyAppointments'
+import BookingResult from './pages/BookingResult'
 import DoctorProtectedRoute from './doctor/DoctorProtectedRoute'
 import DoctorLayout from './doctor/DoctorLayout'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
@@ -31,6 +32,7 @@ const App = () => {
       <Route path="/appointment/success" element={<PaymentSuccess/>}/>
       <Route path="/appointment/cancel" element={<PaymentCancel/>}/>
       <Route path="/my-appointments" element={<MyAppointments/>}/>
+      <Route path="/booking-result" element={<BookingResult/>}/>
       
       {/* Doctor Dashboard Flow */}
       <Route path="/doctor" element={<DoctorProtectedRoute><DoctorLayout/></DoctorProtectedRoute>}>

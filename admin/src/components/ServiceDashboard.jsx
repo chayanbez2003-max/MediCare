@@ -47,7 +47,9 @@ function normalizeService(svc) {
   const earnings =
     svc.earnings != null
       ? safeNumber(svc.earnings, 0)
-      : price * completed
+      : svc.earning != null
+        ? safeNumber(svc.earning, 0)
+        : price * completed
 
   return {
     id,
@@ -86,9 +88,8 @@ const ServiceRow = ({ service, index }) => {
 
   return (
     <tr
-      className={`${s.table.row} transition-colors duration-150 cursor-default ${
-        isOdd ? s.tableRowOdd : s.tableRowEven
-      }`}
+      className={`${s.table.row} transition-colors duration-150 cursor-default ${isOdd ? s.tableRowOdd : s.tableRowEven
+        }`}
       style={{ display: 'table-row' }}
     >
       {/* Service */}
@@ -158,7 +159,7 @@ const ServiceDashboard = () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${API_BASE}/api/services`)
+        const res = await fetch(`${API_BASE}/api/service-appointments/stats`)
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
           throw new Error(body?.message || `Failed to fetch services (${res.status})`)
@@ -231,9 +232,8 @@ const ServiceDashboard = () => {
   const SortIcon = ({ column }) => (
     <ArrowUpDown
       size={13}
-      className={`inline ml-1 ${
-        sortKey === column ? 'text-emerald-600' : 'text-gray-400'
-      }`}
+      className={`inline ml-1 ${sortKey === column ? 'text-emerald-600' : 'text-gray-400'
+        }`}
     />
   )
 
@@ -360,9 +360,8 @@ const ServiceDashboard = () => {
                   {columns.map(({ label, key, align, sortable }) => (
                     <th
                       key={label}
-                      className={`px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap ${align} ${
-                        sortable ? 'cursor-pointer select-none hover:text-emerald-700 transition-colors' : ''
-                      }`}
+                      className={`px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap ${align} ${sortable ? 'cursor-pointer select-none hover:text-emerald-700 transition-colors' : ''
+                        }`}
                       onClick={sortable ? () => handleSort(key) : undefined}
                     >
                       {label}

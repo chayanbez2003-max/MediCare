@@ -11,7 +11,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import toast, { Toaster } from "react-hot-toast";
 
-const DEFAULT_HOST = "import.meta.env.VITE_API_URL".replace(/\/$/, "");
+// Relative API host configuration is used instead of absolute DEFAULT_HOST
 
 export default function ServiceDetail() {
   const { id } = useParams();
@@ -63,7 +63,7 @@ export default function ServiceDetail() {
     const controller = new AbortController();
 
     const endpoints = [
-      `${DEFAULT_HOST}/api/services/${encodeURIComponent(id)}`,
+      `/api/services/${encodeURIComponent(id)}`,
     ];
 
     async function tryFetch() {
@@ -155,11 +155,11 @@ export default function ServiceDetail() {
 
     const past = parsed
       .filter((p) => dateVal(p.date) < todayVal)
-      .sort((a, b) => dateVal(b.date) - dateVal(a.date)); 
+      .sort((a, b) => dateVal(b.date) - dateVal(a.date));
 
     const future = parsed
       .filter((p) => dateVal(p.date) >= todayVal)
-      .sort((a, b) => dateVal(a.date) - dateVal(b.date)); 
+      .sort((a, b) => dateVal(a.date) - dateVal(b.date));
 
     return [...past, ...future].map((p) => p.ds);
   }
@@ -175,7 +175,7 @@ export default function ServiceDetail() {
 
     let dates = Array.isArray(doc.dates) ? doc.dates.slice() : [];
     let slotsMap = {};
-    
+
     if (doc.slots && !Array.isArray(doc.slots) && typeof doc.slots === "object") {
       slotsMap = { ...doc.slots };
       if (dates.length === 0) dates = Object.keys(slotsMap);
@@ -201,8 +201,8 @@ export default function ServiceDetail() {
     out.dates = sortServiceDates(dates);
     out.slots = slotsMap;
     // ensure even empty dates have empty arrays for mapping avoiding crash
-    out.dates.forEach(d => { if(!out.slots[d]) out.slots[d] = []; })
-    
+    out.dates.forEach(d => { if (!out.slots[d]) out.slots[d] = []; })
+
     out.imageAlt = doc.imageAlt ?? doc.alt ?? out.name;
     out.raw = doc;
     return out;
@@ -269,7 +269,7 @@ export default function ServiceDetail() {
         return;
       }
 
-      const res = await fetch(`${DEFAULT_HOST}/api/service-appointments`, {
+      const res = await fetch(`/api/service-appointments`, {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
@@ -285,8 +285,14 @@ export default function ServiceDetail() {
 
       if (!res.ok) {
         const msg = (json && (json.message || json.error || json.rawText)) || `Server returned ${res.status}`;
-        setSubmitError(String(msg));
         setSubmitting(false);
+        navigate("/booking-result", {
+          state: {
+            success: false,
+            errorMessage: String(msg),
+            serviceId: id
+          }
+        });
         return;
       }
 
@@ -299,12 +305,27 @@ export default function ServiceDetail() {
 
       toast.success("Booking created successfully. Redirecting...");
       setTimeout(() => {
-        navigate("/appointments", { replace: true });
+        navigate("/booking-result", {
+          state: {
+            success: true,
+            serviceName: service.name,
+            appointmentDate: selectedDate,
+            timeSlot: selectedTime,
+            paymentMethod: "Cash",
+            serviceId: id
+          }
+        });
       }, 700);
 
     } catch (err) {
       console.error("Booking submit error:", err);
-      setSubmitError("Network error while creating booking.");
+      navigate("/booking-result", {
+        state: {
+          success: false,
+          errorMessage: "Network error while creating booking.",
+          serviceId: id
+        }
+      });
     } finally {
       setSubmitting(false);
     }
@@ -339,11 +360,11 @@ export default function ServiceDetail() {
     <div className="min-h-screen font-serif bg-linear-to-br from-teal-50/60 via-slate-50 to-white py-8 px-4 sm:px-6 lg:px-8">
       <Toaster />
       <div className="max-w-6xl mx-auto">
-        
+
         {/* Top Navbar */}
         <div className="mb-6">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="inline-flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-emerald-100 shadow-sm text-emerald-800 font-medium hover:bg-emerald-50 transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} />
@@ -353,10 +374,10 @@ export default function ServiceDetail() {
 
         {/* Main Dual-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* ================ LEFT COLUMN ================ */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            
+
             {/* Service Image Card */}
             <div className="bg-white rounded-[2rem] shadow-sm p-4 border border-emerald-50 overflow-hidden">
               <img
@@ -382,7 +403,7 @@ export default function ServiceDetail() {
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full rounded-2xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-400 transition placeholder:text-gray-400"
                 />
-                
+
                 <input
                   required
                   type="text"
@@ -390,9 +411,8 @@ export default function ServiceDetail() {
                   maxLength={10}
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-                  className={`w-full rounded-2xl border px-4 py-3 focus:outline-none focus:ring-2 transition placeholder:text-gray-400 bg-emerald-50/30 ${
-                    mobile && !isValidMobile(mobile) ? "border-red-300 focus:ring-red-300" : "border-emerald-100 focus:ring-emerald-300 focus:border-emerald-400"
-                  }`}
+                  className={`w-full rounded-2xl border px-4 py-3 focus:outline-none focus:ring-2 transition placeholder:text-gray-400 bg-emerald-50/30 ${mobile && !isValidMobile(mobile) ? "border-red-300 focus:ring-red-300" : "border-emerald-100 focus:ring-emerald-300 focus:border-emerald-400"
+                    }`}
                 />
 
                 <input
@@ -435,11 +455,10 @@ export default function ServiceDetail() {
                     <button
                       key={d}
                       onClick={() => { setSelectedDate(d); setSelectedTime(""); }}
-                      className={`shrink-0 px-5 py-2.5 rounded-full border transition font-medium ${
-                        selectedDate === d
-                          ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200"
-                          : "bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50"
-                      }`}
+                      className={`shrink-0 px-5 py-2.5 rounded-full border transition font-medium ${selectedDate === d
+                        ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200"
+                        : "bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                        }`}
                     >
                       {d}
                     </button>
@@ -457,11 +476,10 @@ export default function ServiceDetail() {
                       <button
                         key={time}
                         onClick={() => setSelectedTime(time)}
-                        className={`shrink-0 px-5 py-2.5 rounded-full border transition flex items-center gap-2 font-medium ${
-                          selectedTime === time
-                            ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200"
-                            : "bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50"
-                        }`}
+                        className={`shrink-0 px-5 py-2.5 rounded-full border transition flex items-center gap-2 font-medium ${selectedTime === time
+                          ? "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200"
+                          : "bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                          }`}
                       >
                         <Clock size={16} />
                         {time}
@@ -500,11 +518,10 @@ export default function ServiceDetail() {
               <button
                 disabled={!isFormValid() || submitting}
                 onClick={handleSubmit}
-                className={`w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-lg shadow-lg transition-all duration-300 ${
-                  isFormValid() && !submitting
-                    ? "bg-gradient-to-r cursor-pointer from-emerald-500 to-teal-600 text-white hover:shadow-xl hover:from-emerald-600 hover:to-teal-700 active:scale-95"
-                    : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                }`}
+                className={`w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-lg shadow-lg transition-all duration-300 ${isFormValid() && !submitting
+                  ? "bg-gradient-to-r cursor-pointer from-emerald-500 to-teal-600 text-white hover:shadow-xl hover:from-emerald-600 hover:to-teal-700 active:scale-95"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                  }`}
               >
                 <Send size={20} />
                 {submitting ? "Processing..." : `Book Now • ₹${service.price}`}
@@ -516,7 +533,7 @@ export default function ServiceDetail() {
           {/* ================ RIGHT COLUMN ================ */}
           <div className="lg:col-span-7">
             <div className="bg-white rounded-[2rem] shadow-sm p-6 sm:p-10 border border-emerald-50 h-full">
-              
+
               {/* Service Title */}
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-emerald-900 mb-8 tracking-tight">
                 {service.name}
@@ -525,7 +542,7 @@ export default function ServiceDetail() {
               {/* About Box */}
               <div className="bg-emerald-50/50 rounded-2xl p-6 sm:p-8 mb-6 border border-emerald-100/60 shadow-inner">
                 <h2 className="text-lg font-bold text-emerald-900 flex items-center gap-2 mb-3">
-                  <FileText size={20} className="text-emerald-700" /> 
+                  <FileText size={20} className="text-emerald-700" />
                   About This Service
                 </h2>
                 <p className="text-emerald-900/80 leading-relaxed">
@@ -535,10 +552,10 @@ export default function ServiceDetail() {
 
               {/* Price Pill */}
               <div className="mb-8">
-                 <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-900 font-extrabold text-xl px-6 py-2.5 rounded-full border border-emerald-100">
-                    <IndianRupee size={22} className="text-emerald-600" strokeWidth={2.5}/>
-                    {service.price}
-                 </div>
+                <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-900 font-extrabold text-xl px-6 py-2.5 rounded-full border border-emerald-100">
+                  <IndianRupee size={22} className="text-emerald-600" strokeWidth={2.5} />
+                  {service.price}
+                </div>
               </div>
 
               {/* Instructions */}
@@ -561,7 +578,7 @@ export default function ServiceDetail() {
                 <h3 className="text-xl font-extrabold text-emerald-900 mb-5">
                   Booking Summary
                 </h3>
-                
+
                 <div className="space-y-4 text-emerald-900/80">
                   <div className="flex items-center">
                     <span className="w-24 font-bold text-emerald-900">Name:</span>

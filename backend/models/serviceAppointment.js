@@ -136,6 +136,6 @@ serviceAppointmentSchema.index({date:1,status:1})
 serviceAppointmentSchema.index({serviceId:1})
 serviceAppointmentSchema.index({"payment.sessionId":1})
 
-const serviceAppointment =  mongoose.models.serviceAppointment || mongoose.model("serviceAppointment",serviceAppointmentSchema)
+const ServiceAppointment = mongoose.models.ServiceAppointment || mongoose.models.serviceAppointment || mongoose.model("ServiceAppointment", serviceAppointmentSchema);
 
-export default serviceAppointment
+export default ServiceAppointment;
